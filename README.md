@@ -1,4 +1,4 @@
-# Rebus.TODO
+# Rebus.NLog
 
 Provides an NLog logger integration for [Rebus](https://github.com/rebus-org/Rebus).
 
