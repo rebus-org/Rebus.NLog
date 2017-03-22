@@ -1,7 +1,8 @@
 ﻿using NLog;
 using Rebus.Config;
+using Rebus.NLog.NLog;
 
-namespace Rebus.NLog
+namespace Rebus.NLog.Config
 {
     /// <summary>
     /// Configuration extensions for setting up logging with NLog
