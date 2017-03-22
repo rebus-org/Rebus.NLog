@@ -9,7 +9,6 @@ using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Messages;
-using Rebus.Tests;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Utilities;
 using Rebus.Transport.InMem;
@@ -23,7 +22,12 @@ namespace Rebus.NLog.Tests
         public void IncludesCorrelationIdInTheThreeLoggedLines()
         {
             // ${basedir}/logs/logfile.log
+
+#if NETSTANDARD1_6
+            var logFilePath = Path.Combine(AppContext.BaseDirectory, "logs", "logfile.log");
+#else
             var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "logfile.log");
+#endif
             if (File.Exists(logFilePath))
             {
                 File.Delete(logFilePath);
