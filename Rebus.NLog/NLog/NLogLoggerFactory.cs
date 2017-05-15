@@ -37,14 +37,19 @@ namespace Rebus.NLog.NLog
                 _logger.Warn(_loggerFactory.RenderString(message, objs));
             }
 
-            public void Error(Exception exception, string message, params object[] objs)
+            public void Warn(Exception exception, string message, params object[] objs)
             {
-                _logger.Error(exception, _loggerFactory.RenderString(message, objs));
+                _logger.Warn(exception, _loggerFactory.RenderString(message, objs));
             }
 
             public void Error(string message, params object[] objs)
             {
                 _logger.Error(_loggerFactory.RenderString(message, objs));
+            }
+
+            public void Error(Exception exception, string message, params object[] objs)
+            {
+                _logger.Error(exception, _loggerFactory.RenderString(message, objs));
             }
         }
     }
