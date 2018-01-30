@@ -47,7 +47,7 @@
     <None Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="nlog" Version="5.0.0-beta06" />
+    <PackageReference Include="nlog" Version="4.5.0-rc04" />
     <PackageReference Include="rebus" Version="4.0.0" />
   </ItemGroup>
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
