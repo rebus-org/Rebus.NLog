@@ -29,7 +29,7 @@ Configure.With(yourFavoriteContainerAdapter)
 
 and that's basically it :)
 
-Please check out [the NLog sige](http://nlog-project.org/) for details on how to configure NLog.
+Please check out [the NLog site](http://nlog-project.org/) for details on how to configure NLog.
 
 ---
 
