@@ -24,7 +24,7 @@ namespace Rebus.NLog.Tests
         {
             // ${basedir}/logs/logfile.log
 
-#if NETSTANDARD1_6
+#if NETSTANDARD1_5
             var logFilePath = Path.Combine(AppContext.BaseDirectory, "logs", "logfile.log");
 #else
             var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "logfile.log");
