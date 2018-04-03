@@ -24,3 +24,10 @@
 ## 4.0.1
 
 * Fix NLog NuGet package reference, which for some reason was requiring a prerelease of version 5 of NLog - which just happens to have disappeared from NuGet.org... good times!
+
+## 5.0.0
+
+* Update NLog dependency to 4.5 and target .NET Standard 1.3 - thanks [snakefoot]
+
+
+[snakefoot]: https://github.com/snakefoot
