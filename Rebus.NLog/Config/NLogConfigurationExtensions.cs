@@ -1,25 +1,59 @@
-﻿using NLog;
-using Rebus.Config;
-using Rebus.NLog.NLog;
+﻿using System;
+using System.Threading.Tasks;
+using NLog;
+using Rebus.Extensions;
+using Rebus.Messages;
+using Rebus.NLog;
+using Rebus.Pipeline;
 
-namespace Rebus.NLog.Config
+namespace Rebus.Config;
+
+/// <summary>
+/// Configuration extensions for setting up logging with NLog
+/// </summary>
+public static class NLogConfigurationExtensions
 {
     /// <summary>
-    /// Configuration extensions for setting up logging with NLog
+    /// Configures Rebus to use NLog for all of its internal logging, getting its loggers by calling logger <see cref="LogManager.GetLogger(string)"/>.
+    /// If <paramref name="correlationIdPropertyName"/> is different from NULL (default: "correlationid"), an incoming pipeline step will be installed
+    /// which will establish a property via <see cref="ScopeContext.PushProperty{TValue}"/> with the correlation ID of the message currently being handled.
+    /// The scope property can be included in output by adding <code>${scopeproperty:&lt;correlationIdPropertyName&gt;}</code> to a layaout, e.g. like
+    /// <code>${level}|${scopeproperty:correlationId}|${message}</code>
     /// </summary>
-    public static class NLogConfigurationExtensions
+    public static void NLog(this RebusLoggingConfigurer configurer, string correlationIdPropertyName = "correlationId")
     {
-        /// <summary>
-        /// Configures Rebus to use NLog for all of its internal logging, getting its loggers by calling logger <see cref="LogManager.GetLogger(string)"/>.
-        /// After this method is called, a custom layout renderer will be available under the <see cref="RebusCorrelationIdLayoutRenderer.ItemName"/> variable,
-        /// allowing your output pattern to incude the correlation ID of the message currently being handled by including <code>${rebus-correlation-id}</code>
-        /// in the format string. You may register the layout renderer manually if you like by calling <see cref="RebusCorrelationIdLayoutRenderer.Register()"/>
-        /// </summary>
-        public static void NLog(this RebusLoggingConfigurer configurer)
-        {
-            configurer.Use(new NLogLoggerFactory());
+        if (configurer == null) throw new ArgumentNullException(nameof(configurer));
 
-            RebusCorrelationIdLayoutRenderer.Register();
+        if (correlationIdPropertyName != null)
+        {
+            configurer.Decorate<IPipeline>(c =>
+            {
+                var pipeline = c.Get<IPipeline>();
+                var step = new NLogContextStep(correlationIdPropertyName);
+                return new PipelineStepConcatenator(pipeline)
+                    .OnReceive(step, PipelineAbsolutePosition.Front);
+            });
+        }
+
+        configurer.Use(new NLogLoggerFactory());
+    }
+
+    class NLogContextStep : IIncomingStep
+    {
+        readonly string _propertyName;
+
+        public NLogContextStep(string propertyName)
+        {
+            _propertyName = propertyName ?? throw new ArgumentNullException(nameof(propertyName));
+        }
+
+        public async Task Process(IncomingStepContext context, Func<Task> next)
+        {
+            var correlationid = context.Load<TransportMessage>()?.Headers.GetValueOrNull(Headers.CorrelationId);
+
+            using var _ = correlationid != null ? ScopeContext.PushProperty(_propertyName, correlationid) : null;
+
+            await next();
         }
     }
 }

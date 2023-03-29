@@ -9,101 +9,107 @@ using NUnit.Framework;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Messages;
-using Rebus.NLog.Config;
 using Rebus.Tests.Contracts;
 using Rebus.Tests.Contracts.Utilities;
 using Rebus.Transport.InMem;
+// ReSharper disable AccessToDisposedClosure
 
-namespace Rebus.NLog.Tests
+namespace Rebus.NLog.Tests;
+
+[TestFixture]
+public class ContextVariableWorks : FixtureBase
 {
-    [TestFixture]
-    public class ContextVariableWorks : FixtureBase
+    [Test]
+    public async Task IncludesCorrelationIdInTheThreeLoggedLines()
     {
-        [Test]
-        public void IncludesCorrelationIdInTheThreeLoggedLines()
+        // ${basedir}/logs/logfile.log
+
+        var logFilePath = Path.Combine(AppContext.BaseDirectory, "logs", "logfile.log");
+
+        if (File.Exists(logFilePath))
         {
-            // ${basedir}/logs/logfile.log
-
-#if NETSTANDARD1_3
-            var logFilePath = Path.Combine(AppContext.BaseDirectory, "logs", "logfile.log");
-#else
-            var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "logfile.log");
-#endif
-            if (File.Exists(logFilePath))
-            {
-                File.Delete(logFilePath);
-            }
-
-            var activator = new BuiltinHandlerActivator();
-
-            Configure.With(Using(activator))
-                .Logging(l => l.NLog())
-                .Transport(t => t.UseInMemoryTransport(new InMemNetwork(), "test"))
-                .Start();
-
-            var counter = new SharedCounter(1);
-
-            Using(counter);
-
-            var logger = LogManager.GetLogger("test");
-
-            activator.Handle<string>(async str =>
-            {
-                logger.Info("1");
-
-                await Task.Delay(100);
-
-                logger.Info("2");
-
-                await Task.Delay(100);
-
-                logger.Info("3");
-
-                counter.Decrement();
-            });
-
-            var headers = new Dictionary<string,string>
-            {
-                {Headers.CorrelationId, "known-correlation-id" }
-            };
-
-            activator.Bus.SendLocal("hej med dig min ven!!!", headers).Wait();
-
-            counter.WaitForResetEvent();
-
-            WaitForFile(logFilePath);
-
-            var loggedLines = File.ReadAllLines(logFilePath);
-
-            AssertLineIsThere(loggedLines, "1|known-correlation-id");
-            AssertLineIsThere(loggedLines, "2|known-correlation-id");
-            AssertLineIsThere(loggedLines, "3|known-correlation-id");
-
+            File.Delete(logFilePath);
         }
 
-        static void WaitForFile(string logFilePath)
-        {
-            var waitStart = DateTime.UtcNow;
+        using var activator = new BuiltinHandlerActivator();
+        using var counter = new SharedCounter(1);
 
-            while (!File.Exists(logFilePath) && (DateTime.UtcNow - waitStart) < TimeSpan.FromSeconds(10))
+        var logger = LogManager.GetLogger("test");
+
+        activator.Handle<string>(async _ =>
+        {
+            logger.Info("1");
+
+            await Task.Delay(100);
+
+            logger.Info("2");
+
+            await Task.Delay(100);
+
+            logger.Info("3");
+
+            counter.Decrement();
+        });
+
+        Configure.With(Using(activator))
+            .Logging(l => l.NLog(correlationIdPropertyName: "rebus-correlation-id"))
+            .Transport(t => t.UseInMemoryTransport(new InMemNetwork(), "test"))
+            .Start();
+
+        var headers = new Dictionary<string, string>
+        {
+            {Headers.CorrelationId, "known-correlation-id" }
+        };
+
+        await activator.Bus.SendLocal("hej med dig min ven!!!", headers);
+
+        counter.WaitForResetEvent();
+
+        await WaitForFile(logFilePath);
+
+        LogManager.Flush();
+        LogManager.Shutdown();
+
+        var loggedLines = File.ReadAllLines(logFilePath).ToList();
+
+        AssertLineIsThere(loggedLines, "1|known-correlation-id");
+        AssertLineIsThere(loggedLines, "2|known-correlation-id");
+        AssertLineIsThere(loggedLines, "3|known-correlation-id");
+    }
+
+    static async Task WaitForFile(string logFilePath)
+    {
+        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var cancellationToken = cancellationTokenSource.Token;
+
+        try
+        {
+            while (!cancellationTokenSource.IsCancellationRequested)
             {
-                Thread.Sleep(1000);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (File.Exists(logFilePath)) return;
+
+                await Task.Delay(millisecondsDelay: 200, cancellationToken);
             }
-
-            Thread.Sleep(1000);
         }
-
-        static void AssertLineIsThere(IEnumerable<string> loggedLines, string expectedLine)
+        catch
         {
-            Assert.That(loggedLines.Any(l => l.Contains(expectedLine)), Is.True,
-                @"The expected log line '{0}' was not present:
+            throw new TimeoutException($"The file '{logFilePath}' did not appear within 10 s");
+        }
+    }
+
+    static void AssertLineIsThere(List<string> loggedLines, string expectedLine)
+    {
+        Assert.That(loggedLines.Any(l => l.Contains(expectedLine)), Is.True,
+            $@"The expected log line '{expectedLine}' was not present:
 
 This is what I found:
 ---------------------------------------------------------------
-{1}
+{string.Join(Environment.NewLine, loggedLines)}
 ---------------------------------------------------------------
 
-", expectedLine, string.Join(Environment.NewLine, loggedLines));
-        }
+");
     }
 }

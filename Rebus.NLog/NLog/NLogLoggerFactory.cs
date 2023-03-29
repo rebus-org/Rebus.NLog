@@ -1,67 +1,57 @@
 ﻿using System;
 using NLog;
 using Rebus.Logging;
-using LogLevel = NLog.LogLevel;
 
-namespace Rebus.NLog.NLog
+namespace Rebus.NLog;
+
+class NLogLoggerFactory : AbstractRebusLoggerFactory
 {
-    class NLogLoggerFactory : AbstractRebusLoggerFactory
+    protected override ILog GetLogger(Type type)
     {
-        protected override ILog GetLogger(Type type)
+        if (type == null) throw new ArgumentNullException(nameof(type));
+        return new NLogLogger(LogManager.GetLogger(type.FullName));
+    }
+
+    class NLogLogger : ILog
+    {
+        readonly Logger _logger;
+
+        public NLogLogger(Logger logger) => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        public void Debug(string message, params object[] objs)
         {
-            return new NLogLogger(LogManager.GetLogger(type.FullName), this);
+            if (!_logger.IsDebugEnabled) return;
+            _logger.Debug(message, objs);
         }
 
-        class NLogLogger : ILog
+        public void Info(string message, params object[] objs)
         {
-            readonly Logger _logger;
-            readonly NLogLoggerFactory _loggerFactory;
+            if (!_logger.IsInfoEnabled) return;
+            _logger.Info(message, objs);
+        }
 
-            public NLogLogger(Logger logger, NLogLoggerFactory loggerFactory)
-            {
-                _logger = logger;
-                _loggerFactory = loggerFactory;
-            }
+        public void Warn(string message, params object[] objs)
+        {
+            if (!_logger.IsWarnEnabled) return;
+            _logger.Warn(message, objs);
+        }
 
-            public void Debug(string message, params object[] objs)
-            {
-                Log(LogLevel.Debug, null, message, objs);
-            }
+        public void Warn(Exception exception, string message, params object[] objs)
+        {
+            if (!_logger.IsWarnEnabled) return;
+            _logger.Warn(exception, message, objs);
+        }
 
-            public void Info(string message, params object[] objs)
-            {
-                Log(LogLevel.Info, null, message, objs);
-            }
+        public void Error(string message, params object[] objs)
+        {
+            if (!_logger.IsErrorEnabled) return;
+            _logger.Error(message, objs);
+        }
 
-            public void Warn(string message, params object[] objs)
-            {
-                Log(LogLevel.Warn, null, message, objs);
-            }
-
-            public void Warn(Exception exception, string message, params object[] objs)
-            {
-                Log(LogLevel.Warn, exception, message, objs);
-            }
-
-            public void Error(string message, params object[] objs)
-            {
-                Log(LogLevel.Error, null, message, objs);
-            }
-
-            public void Error(Exception exception, string message, params object[] objs)
-            {
-                Log(LogLevel.Error, exception, message, objs);
-            }
-
-            private void Log(LogLevel logLevel, Exception exception, string message, object[] objs)
-            {
-                // Skip RenderString if no one is listening
-                if (_logger.IsEnabled(logLevel))
-                {
-                    // Allow NLog callsite to work, by providing typeof(NLogLogger)
-                    _logger.Log(typeof(NLogLogger), LogEventInfo.Create(logLevel, _logger.Name, exception, null, _loggerFactory.RenderString(message, objs)));
-                }
-            }
+        public void Error(Exception exception, string message, params object[] objs)
+        {
+            if (!_logger.IsErrorEnabled) return;
+            _logger.Error(exception, message, objs);
         }
     }
 }
