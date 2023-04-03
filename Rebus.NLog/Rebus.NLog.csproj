@@ -7,7 +7,7 @@
 		<PackageProjectUrl>https://rebus.fm/what-is-rebus/</PackageProjectUrl>
 		<PackageDescription>NLog-based logger integration for Rebus</PackageDescription>
 		<Copyright>Copyright Rebus FM ApS 2012</Copyright>
-		<PackageTags>rebus wire serialization</PackageTags>
+		<PackageTags>rebus nlog logging</PackageTags>
 		<RepositoryUrl>https://github.com/rebus-org/Rebus</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<RootNamespace>Rebus</RootNamespace>
