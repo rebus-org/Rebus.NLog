@@ -1,6 +1,7 @@
 ﻿using System;
 using NLog;
 using Rebus.Logging;
+using LogLevel = NLog.LogLevel;
 
 namespace Rebus.NLog;
 
@@ -21,37 +22,39 @@ class NLogLoggerFactory : AbstractRebusLoggerFactory
         public void Debug(string message, params object[] objs)
         {
             if (!_logger.IsDebugEnabled) return;
-            _logger.Debug(message, objs);
+            Log(LogLevel.Debug, null, message, objs);
         }
 
         public void Info(string message, params object[] objs)
         {
             if (!_logger.IsInfoEnabled) return;
-            _logger.Info(message, objs);
+            Log(LogLevel.Info, null, message, objs);
         }
 
         public void Warn(string message, params object[] objs)
         {
             if (!_logger.IsWarnEnabled) return;
-            _logger.Warn(message, objs);
+            Log(LogLevel.Warn, null, message, objs);
         }
 
         public void Warn(Exception exception, string message, params object[] objs)
         {
             if (!_logger.IsWarnEnabled) return;
-            _logger.Warn(exception, message, objs);
+            Log(LogLevel.Warn, exception, message, objs);
         }
 
         public void Error(string message, params object[] objs)
         {
             if (!_logger.IsErrorEnabled) return;
-            _logger.Error(message, objs);
+            Log(LogLevel.Error, null, message, objs);
         }
 
         public void Error(Exception exception, string message, params object[] objs)
         {
             if (!_logger.IsErrorEnabled) return;
-            _logger.Error(exception, message, objs);
+            Log(LogLevel.Error, exception, message, objs);
         }
+
+        void Log(LogLevel logLevel, Exception exception, string message, object[] objs) => _logger.Log(typeof(NLogLogger), LogEventInfo.Create(logLevel, _logger.Name, exception, null, message, objs));
     }
 }
