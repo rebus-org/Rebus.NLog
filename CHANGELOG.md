@@ -22,7 +22,8 @@
 ## 5.0.0
 * Update NLog dependency to 4.5 and target .NET Standard 1.3 - thanks [snakefoot]
 
-## 6.0.0-alpha02
+## 6.0.0-alpha03
 * Update to Rebus 8
+* Fix nuggie meta
 
 [snakefoot]: https://github.com/snakefoot
